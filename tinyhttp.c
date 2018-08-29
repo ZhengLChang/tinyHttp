@@ -41,6 +41,7 @@ int main(void)
   }cliaddr;
   socklen_t cliaddrLen = sizeof(cliaddr);
   char readBuf[1024] = "";
+  int readSize = -1;
 
   
   if((ret = getaddrinfo(NULL, "http", &hints, &res)) != 0)
@@ -75,6 +76,16 @@ int main(void)
   while((clifd = accept(listenfd, (struct sockaddr *)&cliaddr, &cliaddrLen)) >= 0)
   {
     char cliStr[1024] = "";
+    if((readSize = read(clifd, readBuf, sizeof(readBuf))) <= 0)
+    {
+      fprintf(stderr, "readSize = %d: %s\n", readSize, strerror(errno));
+      close(clifd);
+      continue;
+    }
+    else
+    {
+      write(1, readBuf, readSize);
+    }
     switch(cliaddr.plain.sa_family)
     {
       case AF_INET:
@@ -99,10 +110,30 @@ int main(void)
     {
       fprintf(stderr, "shutdown error: %s\n", strerror(errno));
     }
-    else if(read(clifd, readBuf, sizeof(readBuf)) == EOF)
+    else if(close(clifd) < 0)
     {
-      close(clifd);
+      fprintf(stderr, "%s %d, close error: %s\n", __func__, __LINE__, strerror(errno));
     }
+    /*
+    if(close(clifd) < 0)
+    {
+      fprintf(stderr, "%s %d, close error: %s\n", __func__, __LINE__, strerror(errno));
+    }
+    */
+    /*
+    else if((readSize = read(clifd, readBuf, sizeof(readBuf))) <= 0)
+    {
+      fprintf(stderr, "readSize = %d: %s\n", readSize, strerror(errno));
+      if(close(clifd) < 0)
+      {
+        fprintf(stderr, "%s %d, close error: %s\n", __func__, __LINE__, strerror(errno));
+      }
+    }
+    else
+    {
+      write(1, readBuf, readSize);
+    }
+    */
   }
   if(res != NULL)
   {
